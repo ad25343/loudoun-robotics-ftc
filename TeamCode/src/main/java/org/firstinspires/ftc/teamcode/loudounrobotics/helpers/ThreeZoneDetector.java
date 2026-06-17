@@ -23,6 +23,13 @@ import org.opencv.imgproc.Imgproc;
  * most pixels matching a target color. The classic "where is the team
  * element / game prop?" autonomous detector — used every FTC season.
  *
+ * <b>Lighting note:</b> this detector uses HSV thresholding, which is
+ * sensitive to brightness changes between your practice space and the
+ * competition venue. For more lighting-robust detection of red or blue
+ * elements, prefer {@link ChrominanceZoneDetector} (YCrCb-based).
+ * Keep this class for yellow (yellow doesn't separate cleanly in YCrCb)
+ * or when you've already tuned HSV bounds you trust.
+ *
  * Plug into a {@code VisionPortal.Builder()} as a processor; read
  * {@link #getDetection()} from your OpMode to find out which zone wins.
  *

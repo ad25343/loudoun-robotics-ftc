@@ -29,7 +29,8 @@ Nothing else in this repo is touched — you can pull upstream SDK updates each 
 | [PIDFController](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/PIDFController.java) | Plain-Java PID + feedforward for arms, slides, drive distance, heading hold |
 | [CsvLogger](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/CsvLogger.java) | Crash-safe RFC-4180 CSV logging to `/sdcard/FIRST/` |
 | [LoopProfiler](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/LoopProfiler.java) | Loop time (last/avg/max) + battery voltage + JVM memory |
-| [ThreeZoneDetector](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/ThreeZoneDetector.java) | "Where's the prop?" — splits frame into 3 zones, returns LEFT / MIDDLE / RIGHT |
+| [ThreeZoneDetector](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/ThreeZoneDetector.java) | "Where's the prop?" via HSV color — works for red/blue/yellow; sensitive to lighting |
+| [ChrominanceZoneDetector](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/ChrominanceZoneDetector.java) | Same three-zone API but uses YCrCb chrominance — lighting-robust; red and blue only |
 | [AprilTagAligner](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/AprilTagAligner.java) | Find an AprilTag by ID; returns drive corrections to align with it |
 | [VisionPipelineBase](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/VisionPipelineBase.java) | (Advanced) abstract base for shape-detection pipelines — subclass and override `analyze()` |
 
