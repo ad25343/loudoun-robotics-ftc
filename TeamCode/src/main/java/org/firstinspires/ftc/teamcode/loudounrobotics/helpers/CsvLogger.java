@@ -77,14 +77,18 @@ public class CsvLogger {
         writeRow((Object[]) columns);
     }
 
-    /** Write one row. Values are converted with String.valueOf(). Commas in values are NOT escaped. */
+    /**
+     * Write one row. Values containing commas, quotes, or newlines are
+     * automatically RFC-4180-quoted (wrapped in {@code "..."} with internal
+     * quotes doubled). Null values become empty cells.
+     */
     public void writeRow(Object... values) {
         if (!open) return;
         try {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < values.length; i++) {
                 if (i > 0) sb.append(',');
-                sb.append(String.valueOf(values[i]));
+                sb.append(escape(values[i]));
             }
             writer.append(sb).append('\n');
             writer.flush();
@@ -92,6 +96,15 @@ public class CsvLogger {
             open = false;
             close();
         }
+    }
+
+    private static String escape(Object value) {
+        if (value == null) return "";
+        String s = String.valueOf(value);
+        if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
+            return "\"" + s.replace("\"", "\"\"") + "\"";
+        }
+        return s;
     }
 
     /** True if the logger is still writing. False after a failure or after {@link #close()}. */

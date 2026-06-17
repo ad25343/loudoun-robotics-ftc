@@ -7,6 +7,7 @@ package org.firstinspires.ftc.teamcode.loudounrobotics.helpers;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -38,36 +39,61 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Sign convention: pass {@code power} as negative if "home" is the retracted
  * direction (most common). Pass positive if your mechanism homes by extending.
  * The method does NOT change the sign for you — it pushes whatever you give it.
+ *
+ * Switch wiring: two overloads.
+ *   • {@code TouchSensor} — easy: the SDK class normalizes for you. {@code isPressed()}
+ *     returns true when the switch is closed regardless of how it's wired.
+ *   • {@code DigitalChannel} — raw: returns the actual line state. A normally-open
+ *     switch connected to a digital port reads LOW when pressed (the default).
+ *     Pass {@code pressedReadsHigh=true} if your switch is normally-closed.
  */
 public final class EncoderHoming {
 
     private EncoderHoming() { /* utility class */ }
 
-    /**
-     * @param motor          the motor to drive
-     * @param limitSwitch    the limit switch that defines "home"
-     * @param power          signed drive power (typically -0.2 to -0.5 for retraction)
-     * @param timeoutSeconds maximum time to attempt homing before giving up
-     * @param opMode         the calling LinearOpMode (used for opModeIsActive() safety)
-     * @return true if the switch tripped within the timeout, false otherwise
-     */
+    /** TouchSensor variant — convenient, no wiring assumptions to make. */
     public static boolean runUntilSwitch(DcMotor motor,
                                          TouchSensor limitSwitch,
                                          double power,
                                          double timeoutSeconds,
                                          LinearOpMode opMode) {
+        return runUntilPressed(motor, power, timeoutSeconds, opMode,
+                limitSwitch::isPressed);
+    }
+
+    /**
+     * DigitalChannel variant — direct read of the digital line.
+     * Default ({@code pressedReadsHigh=false}) matches the most common wiring:
+     * a normally-open switch grounded to GND, which reads LOW when pressed.
+     */
+    public static boolean runUntilSwitch(DcMotor motor,
+                                         DigitalChannel limitSwitch,
+                                         boolean pressedReadsHigh,
+                                         double power,
+                                         double timeoutSeconds,
+                                         LinearOpMode opMode) {
+        return runUntilPressed(motor, power, timeoutSeconds, opMode,
+                () -> limitSwitch.getState() == pressedReadsHigh);
+    }
+
+    /** Shared loop body — sensor-type-agnostic. */
+    private static boolean runUntilPressed(DcMotor motor,
+                                           double power,
+                                           double timeoutSeconds,
+                                           LinearOpMode opMode,
+                                           PressedCheck pressed) {
         motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motor.setPower(power);
 
         ElapsedTime timer = new ElapsedTime();
         while (opMode.opModeIsActive()
-                && !limitSwitch.isPressed()
+                && !pressed.isPressed()
                 && timer.seconds() < timeoutSeconds) {
-            // wait — limit switch will end the loop, or the timeout will
+            // wait — switch will end the loop, or the timeout will
         }
 
         motor.setPower(0);
-        boolean success = limitSwitch.isPressed();
+        boolean success = pressed.isPressed();
 
         if (success) {
             motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -75,5 +101,10 @@ public final class EncoderHoming {
         }
 
         return success;
+    }
+
+    @FunctionalInterface
+    private interface PressedCheck {
+        boolean isPressed();
     }
 }
