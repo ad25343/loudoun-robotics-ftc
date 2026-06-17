@@ -31,6 +31,7 @@ Nothing else in this repo is touched — you can pull upstream SDK updates each 
 | [LoopProfiler](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/LoopProfiler.java) | Loop time (last/avg/max) + battery voltage + JVM memory |
 | [ThreeZoneDetector](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/ThreeZoneDetector.java) | "Where's the prop?" via HSV color — works for red/blue/yellow; sensitive to lighting |
 | [ChrominanceZoneDetector](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/ChrominanceZoneDetector.java) | Same three-zone API but uses YCrCb chrominance — lighting-robust; red and blue only |
+| [ColorShape](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/ColorShape.java) | Find shapes (triangle/square/circle/etc.) of a target color — color-mask first, then classify. The right way to do FTC shape detection |
 | [AprilTagAligner](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/AprilTagAligner.java) | Find an AprilTag by ID; returns drive corrections to align with it |
 | [VisionPipelineBase](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/helpers/VisionPipelineBase.java) | (Advanced) abstract base for shape-detection pipelines — subclass and override `analyze()` |
 
@@ -42,6 +43,7 @@ Nothing else in this repo is touched — you can pull upstream SDK updates each 
 | [SampleMecanumTeleOp](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/examples/SampleMecanumTeleOp.java) | MecanumDrive + BulkCache + GamepadEx |
 | [SampleHealthLogging](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/examples/SampleHealthLogging.java) | LoopProfiler + CsvLogger + BulkCache |
 | [SampleZoneDetection](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/examples/SampleZoneDetection.java) | ThreeZoneDetector |
+| [SampleShapeDetection](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/examples/SampleShapeDetection.java) | ColorShape — live detection telemetry for tuning |
 | [SampleCompositeAuto](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/examples/SampleCompositeAuto.java) | 6 helpers together — vision-driven mecanum auto with heading hold + CSV logging |
 
 ## How to use it
