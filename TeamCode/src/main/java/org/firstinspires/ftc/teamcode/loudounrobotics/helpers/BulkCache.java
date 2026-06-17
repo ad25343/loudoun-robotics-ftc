@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package org.firstinspires.ftc.teamcode.loudoun.helpers;
+package org.firstinspires.ftc.teamcode.loudounrobotics.helpers;
 
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.HardwareMap;

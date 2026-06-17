@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: MIT
  */
 
-package org.firstinspires.ftc.teamcode.loudoun.examples;
+package org.firstinspires.ftc.teamcode.loudounrobotics.examples;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.teamcode.loudoun.helpers.GamepadEx;
+import org.firstinspires.ftc.teamcode.loudounrobotics.helpers.GamepadEx;
 
 /**
  * Minimal TeleOp showing how to use GamepadEx for one-shot button presses.

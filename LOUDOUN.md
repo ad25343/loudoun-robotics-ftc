@@ -7,7 +7,7 @@ This is [Loudoun Robotics](https://www.loudounrobotics.org)' fork of the officia
 Everything LR adds lives under one package:
 
 ```
-TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudoun/
+TeamCode/src/main/java/org/firstinspires/ftc/teamcode/loudounrobotics/
 ├── helpers/    — small reusable utilities (debounced gamepad, etc.)
 └── examples/   — sample OpModes that use the helpers
 ```

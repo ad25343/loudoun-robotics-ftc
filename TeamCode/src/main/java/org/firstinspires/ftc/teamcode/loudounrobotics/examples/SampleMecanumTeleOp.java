@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: MIT
  */
 
-package org.firstinspires.ftc.teamcode.loudoun.examples;
+package org.firstinspires.ftc.teamcode.loudounrobotics.examples;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.teamcode.loudoun.helpers.BulkCache;
-import org.firstinspires.ftc.teamcode.loudoun.helpers.GamepadEx;
-import org.firstinspires.ftc.teamcode.loudoun.helpers.MecanumDrive;
+import org.firstinspires.ftc.teamcode.loudounrobotics.helpers.BulkCache;
+import org.firstinspires.ftc.teamcode.loudounrobotics.helpers.GamepadEx;
+import org.firstinspires.ftc.teamcode.loudounrobotics.helpers.MecanumDrive;
 
 /**
  * Field-centric mecanum TeleOp that uses three LR helpers together:
