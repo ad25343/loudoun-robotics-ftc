@@ -85,6 +85,23 @@ public class CsvLogger {
     }
 
     /**
+     * Write a raw line that bypasses RFC-4180 escaping. Used for comment / metadata
+     * rows like {@code # schema: col=TYPE, ...} that a downstream CSV parser will skip
+     * (PapaParse with {@code comments: '#'} configuration, Pandas {@code skiprows=}, etc.).
+     * The line is written followed by a single newline. Do not pass embedded newlines.
+     */
+    public void writeComment(String line) {
+        if (!open) return;
+        try {
+            writer.append(line).append('\n');
+            rowsSinceFlush++;
+        } catch (IOException e) {
+            open = false;
+            close();
+        }
+    }
+
+    /**
      * Write one row. Values containing commas, quotes, or newlines are
      * automatically RFC-4180-quoted (wrapped in {@code "..."} with internal
      * quotes doubled). Null values become empty cells.
