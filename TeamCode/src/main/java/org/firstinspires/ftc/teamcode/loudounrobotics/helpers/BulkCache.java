@@ -21,35 +21,42 @@ import java.util.List;
  * Most rookie teams don't know this exists. Use this helper.
  *
  * Two modes:
- *   AUTO   — cache auto-refreshes when ANY hardware read happens after the
- *            previous read. Set-and-forget. Use this unless you have a reason not to.
- *   MANUAL — cache only refreshes when you call {@link #clearAll()}. Slightly faster
- *            but you MUST call clearAll() at the top of every loop.
+ *   MANUAL (default) — cache only refreshes when you call {@link #clearAll()}.
+ *                      Deterministic, fastest in real teams. You MUST call
+ *                      {@code clearAll()} at the top of every loop.
+ *   AUTO            — cache silently re-reads when the same sensor is read again
+ *                      after a previous read in the same loop. Set-and-forget but
+ *                      slower than MANUAL once a team queries the same sensor in
+ *                      more than one place (which happens fast as helpers stack up).
  *
- * Usage (AUTO mode, the default):
+ * Usage (MANUAL — the recommended pattern):
  * <pre>
- *   new BulkCache(hardwareMap);   // that's it
- * </pre>
- *
- * Usage (MANUAL mode, for max performance):
- * <pre>
- *   BulkCache cache = new BulkCache(hardwareMap, LynxModule.BulkCachingMode.MANUAL);
+ *   BulkCache cache = new BulkCache(hardwareMap);
  *   while (opModeIsActive()) {
  *       cache.clearAll();   // top of every loop
  *       // ... read sensors / motor positions / etc.
  *   }
+ * </pre>
+ *
+ * Usage (AUTO — only when you don't control the loop):
+ * <pre>
+ *   new BulkCache(hardwareMap, LynxModule.BulkCachingMode.AUTO);   // set and forget
  * </pre>
  */
 public class BulkCache {
 
     private final List<LynxModule> hubs;
 
-    /** AUTO caching mode — set and forget. Recommended for most teams. */
+    /**
+     * MANUAL caching mode. Call {@link #clearAll()} at the top of every loop.
+     * This is what competitive FTC teams use; it's deterministic and faster than AUTO
+     * once helpers stack up.
+     */
     public BulkCache(HardwareMap hwMap) {
-        this(hwMap, LynxModule.BulkCachingMode.AUTO);
+        this(hwMap, LynxModule.BulkCachingMode.MANUAL);
     }
 
-    /** Explicit caching mode. Use MANUAL for max performance + call {@link #clearAll()} every loop. */
+    /** Explicit caching mode. Most teams should stick with the default MANUAL constructor. */
     public BulkCache(HardwareMap hwMap, LynxModule.BulkCachingMode mode) {
         hubs = hwMap.getAll(LynxModule.class);
         for (LynxModule hub : hubs) {

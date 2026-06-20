@@ -48,7 +48,8 @@ public class MecanumDrive {
 
     private final DcMotor frontLeft, backLeft, frontRight, backRight;
     private final IMU imu;
-    private double strafeCorrection = 1.1;  // counteract imperfect strafing
+    private double strafeCorrection = 1.1;   // counteract imperfect strafing (per-robot; measure yours)
+    private double maxOutputScale  = 1.0;    // headroom for voltage compensation (cap final output)
 
     /** Standard constructor — REV hub mounted logo-up, USB-forward. */
     public MecanumDrive(HardwareMap hwMap,
@@ -88,9 +89,25 @@ public class MecanumDrive {
         backRight.setDirection(right);
     }
 
-    /** Tune the strafe correction factor (default 1.1). Higher = more strafe authority. */
+    /**
+     * Tune the strafe correction factor. Default 1.1 is folk wisdom — your robot may need
+     * 1.0 (no correction) to ~1.3 depending on wheel slip + chassis. Drive the robot diagonally
+     * across a tile and measure the angle; tune until the diagonal is true.
+     */
     public void setStrafeCorrection(double factor) {
         this.strafeCorrection = factor;
+    }
+
+    /**
+     * Cap the maximum motor output (0.0 to 1.0). Default 1.0 = no cap.
+     *
+     * Set this BELOW 1.0 (e.g. 0.85) when you want headroom for voltage compensation —
+     * a fresh battery at 13V × 0.85 = ~11V at the motor; at 11V a 0.85 → 1.0 scale-up
+     * yields the same motor output, so the robot feels the same as the battery drops.
+     * Above 11V it just feels slightly slower. Without headroom there's no compensation room.
+     */
+    public void setMaxOutputScale(double scale) {
+        this.maxOutputScale = Math.max(0.0, Math.min(1.0, scale));
     }
 
     /**
@@ -100,7 +117,6 @@ public class MecanumDrive {
      * @param turn     + = clockwise, - = counter-clockwise
      */
     public void driveRobotCentric(double forward, double strafe, double turn) {
-        strafe *= strafeCorrection;
         applyPowers(forward, strafe, turn);
     }
 
@@ -113,7 +129,6 @@ public class MecanumDrive {
         // Rotate the requested motion vector by the negative of the robot's heading
         double rotForward = forward * Math.cos(-heading) - strafe * Math.sin(-heading);
         double rotStrafe  = forward * Math.sin(-heading) + strafe * Math.cos(-heading);
-        rotStrafe *= strafeCorrection;
         applyPowers(rotForward, rotStrafe, turn);
     }
 
@@ -133,11 +148,16 @@ public class MecanumDrive {
     }
 
     private void applyPowers(double forward, double strafe, double turn) {
+        // Apply strafe correction BEFORE normalization so both centric modes
+        // saturate identically. (Mistake: applying it after the denominator gives
+        // the field-centric path different feel than robot-centric.)
+        strafe *= strafeCorrection;
+
         // Denominator: largest absolute power, or 1.0. Keeps ratios when any wheel saturates.
         double denominator = Math.max(Math.abs(forward) + Math.abs(strafe) + Math.abs(turn), 1.0);
-        frontLeft.setPower( (forward + strafe + turn) / denominator);
-        backLeft.setPower(  (forward - strafe + turn) / denominator);
-        frontRight.setPower((forward - strafe - turn) / denominator);
-        backRight.setPower( (forward + strafe - turn) / denominator);
+        frontLeft.setPower( ((forward + strafe + turn) / denominator) * maxOutputScale);
+        backLeft.setPower(  ((forward - strafe + turn) / denominator) * maxOutputScale);
+        frontRight.setPower(((forward - strafe - turn) / denominator) * maxOutputScale);
+        backRight.setPower( ((forward + strafe - turn) / denominator) * maxOutputScale);
     }
 }

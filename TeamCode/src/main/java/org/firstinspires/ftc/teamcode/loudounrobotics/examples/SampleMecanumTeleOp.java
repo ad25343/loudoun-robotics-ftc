@@ -40,21 +40,25 @@ public class SampleMecanumTeleOp extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        new BulkCache(hardwareMap);  // AUTO mode — set and forget
+        BulkCache cache = new BulkCache(hardwareMap);  // MANUAL mode — call clearAll() per loop
 
         MecanumDrive drive = new MecanumDrive(hardwareMap,
                 "fl", "bl", "fr", "br", "imu");
 
         GamepadEx gp1 = new GamepadEx(gamepad1);
-        boolean fieldCentric = true;
+        // Default to robot-centric. Field-centric requires the driver to know which
+        // way the robot was facing at init — easy to get wrong on the first push.
+        boolean fieldCentric = false;
 
-        telemetry.addLine("Press PLAY. Then use left stick to drive, right stick to turn.");
-        telemetry.addLine("Press OPTIONS to zero heading. Press A to toggle field/robot centric.");
+        telemetry.addLine("Press PLAY. Left stick = drive, right stick = turn.");
+        telemetry.addLine("Press A to toggle field-centric mode (currently OFF — robot-centric).");
+        telemetry.addLine("Press OPTIONS to zero heading (only matters in field-centric).");
         telemetry.update();
 
         waitForStart();
 
         while (opModeIsActive()) {
+            cache.clearAll();   // refresh bulk-read cache at top of every loop
             gp1.update();
 
             if (gp1.wasJustPressed(g -> g.a)) {

@@ -61,6 +61,7 @@ package org.firstinspires.ftc.teamcode.loudounrobotics.helpers;
 public class PIDFController {
 
     private double kP, kI, kD, kF;
+    private double kS = 0;                  // constant feedforward (gravity / stiction)
     private double setpoint = 0;
 
     private double lastError = 0;
@@ -69,7 +70,9 @@ public class PIDFController {
 
     private double outputMin = -1.0;
     private double outputMax = 1.0;
-    private double integralCap = Double.POSITIVE_INFINITY;
+    // Default cap = 1.0 to mitigate integral windup. Tune via setIntegralCap()
+    // if you actually need more authority from the I term.
+    private double integralCap = 1.0;
 
     public PIDFController(double kP, double kI, double kD, double kF) {
         this.kP = kP;
@@ -96,9 +99,21 @@ public class PIDFController {
         this.outputMax = max;
     }
 
-    /** Bound the integral term's absolute value. Default Infinity = off. */
+    /** Bound the integral term's absolute value. Default 1.0 — prevents the classic windup trap. */
     public void setIntegralCap(double cap) {
         this.integralCap = Math.abs(cap);
+    }
+
+    /**
+     * Constant feedforward term — added to the output every cycle, sign-matched to the error.
+     * Use for gravity / stiction compensation (e.g., an arm always needs a fixed bias to hold against gravity).
+     *
+     * NOTE: {@code kF} (the parameter in the constructor) is VELOCITY feedforward —
+     * scales with the setpoint magnitude. {@code kS} (this) is CONSTANT — same magnitude
+     * every loop. Most teams want kS, not kF, for arms and slides.
+     */
+    public void setStaticFeedforward(double kS) {
+        this.kS = kS;
     }
 
     /** Clear integral + derivative state — call when the setpoint changes drastically. */
@@ -116,16 +131,23 @@ public class PIDFController {
     public double calculate(double measurement) {
         double error = setpoint - measurement;
         long nowNs = System.nanoTime();
-        double dt = (lastTimeNs > 0) ? (nowNs - lastTimeNs) / 1e9 : 0.02;  // 20ms default
+        boolean firstCall = (lastTimeNs < 0);
+        double dt = firstCall ? 0.02 : (nowNs - lastTimeNs) / 1e9;  // 20ms default on first call
         lastTimeNs = nowNs;
 
-        integral += error * dt;
-        integral = Math.max(-integralCap, Math.min(integralCap, integral));
+        // Skip integral on the first call — there's no real dt yet, so its contribution
+        // would be a stale ~20ms × current error.
+        if (!firstCall) {
+            integral += error * dt;
+            integral = Math.max(-integralCap, Math.min(integralCap, integral));
+        }
 
-        double derivative = (dt > 0) ? (error - lastError) / dt : 0;
+        // Skip derivative on the first call — lastError is 0, so it'd be a huge kick.
+        double derivative = firstCall ? 0 : (error - lastError) / dt;
         lastError = error;
 
-        double output = kP * error + kI * integral + kD * derivative + kF * setpoint;
+        double output = kP * error + kI * integral + kD * derivative + kF * setpoint
+                      + kS * Math.signum(error);
         return Math.max(outputMin, Math.min(outputMax, output));
     }
 

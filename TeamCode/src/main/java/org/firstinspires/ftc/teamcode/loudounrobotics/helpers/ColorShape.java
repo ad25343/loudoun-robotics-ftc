@@ -215,12 +215,17 @@ public class ColorShape implements VisionProcessor {
     }
 
     private static Shape classify(int vertexCount, double circularity, MatOfPoint contour) {
-        // High circularity + many vertices ⇒ circle
-        if (circularity > 0.85 && vertexCount > 8) return Shape.CIRCLE;
+        // Circle: needs BOTH high circularity (close to a perfect circle) AND many vertices
+        // (>12 — `8` was too permissive; noisy hexagons frequently approxPolyDP to 8-10).
+        if (circularity > 0.85 && vertexCount > 12) return Shape.CIRCLE;
 
         switch (vertexCount) {
             case 3: return Shape.TRIANGLE;
             case 4:
+                // Aspect is from the AXIS-ALIGNED bounding rect — a square rotated 45°
+                // reports as a square (its bounding box IS roughly equal-sided). That's fine
+                // for "is this a square?" but tells you nothing about orientation. Use
+                // minAreaRect() if you need rotation-aware detection.
                 Rect br = Imgproc.boundingRect(contour);
                 double aspect = (br.height > 0) ? (double) br.width / br.height : 1.0;
                 return (aspect > 0.85 && aspect < 1.15) ? Shape.SQUARE : Shape.RECTANGLE;
@@ -228,6 +233,17 @@ public class ColorShape implements VisionProcessor {
             case 6:  return Shape.HEXAGON;
             default: return Shape.OTHER;
         }
+    }
+
+    /**
+     * Release the OpenCV native resources held by this detector. Call from your OpMode's
+     * {@code stop()} or when you swap to a different VisionProcessor. Safe to call multiple times.
+     */
+    public void close() {
+        if (kernel != null) kernel.release();
+        ycrcb.release();
+        channelMat.release();
+        mask.release();
     }
 
     @Override

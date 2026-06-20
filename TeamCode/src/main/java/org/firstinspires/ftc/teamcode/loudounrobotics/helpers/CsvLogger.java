@@ -5,6 +5,7 @@
 
 package org.firstinspires.ftc.teamcode.loudounrobotics.helpers;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -42,10 +43,14 @@ import java.util.Locale;
 public class CsvLogger {
 
     private static final String DEFAULT_DIR = "/sdcard/FIRST/";
+    private static final int FLUSH_EVERY_ROWS = 50;
+    private static final long FLUSH_EVERY_NANOS = 1_000_000_000L;  // 1 second
 
-    private FileWriter writer;
+    private BufferedWriter writer;
     private boolean open = false;
     private final String filename;
+    private int rowsSinceFlush = 0;
+    private long lastFlushNanos = 0;
 
     /** Logs to /sdcard/FIRST/&lt;baseName&gt;_&lt;timestamp&gt;.csv. */
     public CsvLogger(String baseName) {
@@ -64,7 +69,9 @@ public class CsvLogger {
         this.filename = directory + baseName + stamp + ".csv";
         try {
             new File(directory).mkdirs();  // no-op if it exists
-            writer = new FileWriter(filename, true);
+            // 8 KB buffer — large enough that ~50 rows fit before SD-card hits the disk.
+            writer = new BufferedWriter(new FileWriter(filename, true), 8192);
+            lastFlushNanos = System.nanoTime();
             open = true;
         } catch (Exception e) {
             // Disk full, no write permission, whatever — silently disable.
@@ -81,6 +88,11 @@ public class CsvLogger {
      * Write one row. Values containing commas, quotes, or newlines are
      * automatically RFC-4180-quoted (wrapped in {@code "..."} with internal
      * quotes doubled). Null values become empty cells.
+     *
+     * Writes go to an 8 KB buffer. Flush happens every {@value #FLUSH_EVERY_ROWS}
+     * rows or every {@value #FLUSH_EVERY_NANOS}ns (1 second), whichever comes
+     * first — keeps SD-card stalls out of the OpMode hot loop. Call
+     * {@link #flush()} or {@link #close()} to force.
      */
     public void writeRow(Object... values) {
         if (!open) return;
@@ -91,7 +103,28 @@ public class CsvLogger {
                 sb.append(escape(values[i]));
             }
             writer.append(sb).append('\n');
+            rowsSinceFlush++;
+
+            long nowNanos = System.nanoTime();
+            if (rowsSinceFlush >= FLUSH_EVERY_ROWS
+                    || (nowNanos - lastFlushNanos) >= FLUSH_EVERY_NANOS) {
+                writer.flush();
+                rowsSinceFlush = 0;
+                lastFlushNanos = nowNanos;
+            }
+        } catch (IOException e) {
+            open = false;
+            close();
+        }
+    }
+
+    /** Force a flush to disk. Useful at phase boundaries or before stop. */
+    public void flush() {
+        if (!open) return;
+        try {
             writer.flush();
+            rowsSinceFlush = 0;
+            lastFlushNanos = System.nanoTime();
         } catch (IOException e) {
             open = false;
             close();

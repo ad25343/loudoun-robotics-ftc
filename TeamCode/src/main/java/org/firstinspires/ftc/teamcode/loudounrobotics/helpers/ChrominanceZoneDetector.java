@@ -87,7 +87,10 @@ public class ChrominanceZoneDetector implements VisionProcessor {
 
     private final Channel channel;
     private int pixelThreshold;       // 0-255, per-pixel value above which the pixel counts
-    private int minPixelSum = 25_500; // ~100 matching pixels minimum (255 per pixel × 100)
+    // Default is recomputed in init() once the frame size is known (≈5% of a zone's pixels).
+    // Until then, a sane fallback for 640×480.
+    private int minPixelSum = 25_500;
+    private boolean minPixelSumOverridden = false;
 
     private Rect leftZone, middleZone, rightZone;
 
@@ -105,11 +108,13 @@ public class ChrominanceZoneDetector implements VisionProcessor {
     }
 
     public static ChrominanceZoneDetector forRedElement() {
-        return new ChrominanceZoneDetector(Channel.CR, 150);
+        // 170 is meaningfully above the neutral midpoint (~128) and avoids tripping
+        // on cream-colored field tape, which a 150 threshold tends to catch.
+        return new ChrominanceZoneDetector(Channel.CR, 170);
     }
 
     public static ChrominanceZoneDetector forBlueElement() {
-        return new ChrominanceZoneDetector(Channel.CB, 150);
+        return new ChrominanceZoneDetector(Channel.CB, 170);
     }
 
     /** Per-pixel chrominance threshold (0-255). Higher = stricter color match. */
@@ -120,6 +125,7 @@ public class ChrominanceZoneDetector implements VisionProcessor {
     /** Minimum sum of matching pixels (× 255) needed to declare a zone winner. */
     public void setMinPixelSum(int sum) {
         this.minPixelSum = sum;
+        this.minPixelSumOverridden = true;
     }
 
     public ThreeZoneDetector.ZonePosition getDetection() {
@@ -136,6 +142,13 @@ public class ChrominanceZoneDetector implements VisionProcessor {
         leftZone   = new Rect(0,             0, third,         height);
         middleZone = new Rect(third,         0, third * 2,     height);
         rightZone  = new Rect(third * 2,     0, width,         height);
+
+        // Auto-scale minPixelSum to ~5% of a single zone's pixel count, unless the team
+        // already pinned it. 5% balances "ignore speckle" vs "catch a real prop in view."
+        if (!minPixelSumOverridden) {
+            int zonePixels = third * height;
+            minPixelSum = (int)(zonePixels * 0.05 * 255);
+        }
     }
 
     @Override

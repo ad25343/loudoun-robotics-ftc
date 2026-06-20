@@ -19,6 +19,8 @@ import org.firstinspires.ftc.teamcode.loudounrobotics.helpers.ThreeZoneDetector;
 import org.firstinspires.ftc.teamcode.loudounrobotics.helpers.ThreeZoneDetector.ZonePosition;
 import org.firstinspires.ftc.vision.VisionPortal;
 
+import java.util.function.DoubleSupplier;
+
 /**
  * End-to-end autonomous demonstrating how the LR helpers compose:
  *
@@ -131,6 +133,11 @@ public class SampleCompositeAuto extends LinearOpMode {
                           ElapsedTime matchTimer,
                           DoubleSupplier forward,
                           DoubleSupplier strafe) {
+        // Clear integral + derivative state when the phase starts. Otherwise the
+        // first calculate() in this phase reads a derivative computed against the
+        // last error from the PREVIOUS phase — usually a jolt.
+        headingPID.reset();
+
         ElapsedTime phaseTimer = new ElapsedTime();
         while (opModeIsActive() && phaseTimer.seconds() < durationSeconds) {
             health.tick();
@@ -139,7 +146,7 @@ public class SampleCompositeAuto extends LinearOpMode {
             double headingDeg = Math.toDegrees(headingRad);
             double turnCorrection = headingPID.calculate(headingDeg);
 
-            drive.driveRobotCentric(forward.get(), strafe.get(), turnCorrection);
+            drive.driveRobotCentric(forward.getAsDouble(), strafe.getAsDouble(), turnCorrection);
 
             log.writeRow(
                     String.format("%.3f", matchTimer.seconds()),
@@ -154,10 +161,5 @@ public class SampleCompositeAuto extends LinearOpMode {
             health.addTelemetry(telemetry);
             telemetry.update();
         }
-    }
-
-    @FunctionalInterface
-    private interface DoubleSupplier {
-        double get();
     }
 }

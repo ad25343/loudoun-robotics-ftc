@@ -89,7 +89,9 @@ public final class EncoderHoming {
         while (opMode.opModeIsActive()
                 && !pressed.isPressed()
                 && timer.seconds() < timeoutSeconds) {
-            // wait — switch will end the loop, or the timeout will
+            // idle() yields to the SDK event loop so Lynx comms keep flowing.
+            // Busy-spinning here starved the SDK and could trigger watchdog warnings.
+            opMode.idle();
         }
 
         motor.setPower(0);
@@ -97,6 +99,9 @@ public final class EncoderHoming {
 
         if (success) {
             motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            // Give the controller a tick to apply the mode change before we ask for
+            // RUN_USING_ENCODER. Some firmware reports a stale position otherwise.
+            try { Thread.sleep(50); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
             motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
 

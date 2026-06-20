@@ -44,22 +44,26 @@ import java.util.List;
  *   }
  * </pre>
  *
- * Usage — drive to a tag at 12" range:
+ * Usage — drive to a tag at 12" range. <b>Tune the gains for your robot:</b>
+ * start at 0.01 on each axis, double until the robot just begins to oscillate
+ * near the target, then halve. There is no one-size-fits-all default.
  * <pre>
+ *   double kForward = 0.01;   // tune
+ *   double kStrafe  = 0.01;   // tune
+ *   double kTurn    = 0.01;   // tune
+ *
  *   while (opModeIsActive()) {
  *       AprilTagAligner.DriveCorrections c = aligner.getDriveCorrections(12.0);
  *       if (c == null) { drive.stop(); continue; }   // tag lost
  *
- *       // Scale each axis through a P-controller (tune the gains for your robot)
- *       double fwd    = clamp(c.forward * 0.04, -0.4, 0.4);
- *       double strafe = clamp(c.strafe  * 0.025, -0.4, 0.4);
- *       double turn   = clamp(c.turn    * 0.015, -0.4, 0.4);
+ *       // Apply deadband on each axis so we don't hunt at small errors
+ *       double fwd    = Math.abs(c.forward) &lt; 0.5 ? 0 : clamp(c.forward * kForward, -0.4, 0.4);
+ *       double strafe = Math.abs(c.strafe)  &lt; 0.5 ? 0 : clamp(c.strafe  * kStrafe,  -0.4, 0.4);
+ *       double turn   = Math.abs(c.turn)    &lt; 2.0 ? 0 : clamp(c.turn    * kTurn,    -0.4, 0.4);
  *
  *       drive.driveRobotCentric(fwd, strafe, turn);
  *
- *       if (Math.abs(c.forward) &lt; 1.0 &amp;&amp; Math.abs(c.strafe) &lt; 1.0 &amp;&amp; Math.abs(c.turn) &lt; 2.0) {
- *           drive.stop(); break;
- *       }
+ *       if (fwd == 0 &amp;&amp; strafe == 0 &amp;&amp; turn == 0) { drive.stop(); break; }
  *   }
  * </pre>
  */
@@ -107,21 +111,37 @@ public class AprilTagAligner {
      * Returns drive corrections (forward / strafe / turn) to move toward the
      * target tag at the given range, or null if no tag is detected.
      *
-     * Each component is the RAW ERROR in its natural unit:
-     *   • {@code forward} — inches to close (positive = drive forward)
-     *   • {@code strafe}  — bearing degrees to cancel (positive = strafe right)
-     *   • {@code turn}    — yaw degrees to cancel (positive = turn clockwise)
+     * <h3>Axis assignment — this is the important part</h3>
      *
-     * Multiply each by a small gain (≈ 0.01–0.05) before feeding to the drive.
-     * For a more disciplined approach, wrap each in a {@link PIDFController}.
+     * <ul>
+     *   <li>{@code forward} — inches between current range and target range
+     *       (positive = drive forward to close).</li>
+     *   <li>{@code strafe}  — inches of lateral offset from {@code ftcPose.x}
+     *       (positive = strafe right to center on the tag).</li>
+     *   <li>{@code turn}    — degrees of bearing (positive = turn clockwise
+     *       to face the tag). Bearing drives <em>turn</em>, not strafe.</li>
+     * </ul>
+     *
+     * Common bug: assigning bearing to strafe makes a mecanum drive crab sideways
+     * while still pointing the wrong direction. The correct intuition is "turn
+     * to face it, strafe to center on it, drive forward to close the range."
+     *
+     * <h3>Gains — tune for your robot</h3>
+     *
+     * Start each axis at gain ≈ 0.01 and double until the robot just begins to
+     * oscillate near the target, then halve. The right value depends on robot
+     * mass, gearing, and friction — there is no one-size-fits-all default.
+     *
+     * Add a deadband on each axis (e.g. forward ±0.5", strafe ±0.5", turn ±2°)
+     * to avoid hunting on small errors.
      */
     public DriveCorrections getDriveCorrections(double targetRangeInches) {
         AprilTagDetection det = getDetection();
         if (det == null || det.ftcPose == null) return null;
         return new DriveCorrections(
-                det.ftcPose.range - targetRangeInches,
-                det.ftcPose.bearing,
-                det.ftcPose.yaw
+                det.ftcPose.range - targetRangeInches,  // forward: close the range
+                det.ftcPose.x,                          // strafe:  cancel lateral offset
+                det.ftcPose.bearing                     // turn:    point at the tag
         );
     }
 

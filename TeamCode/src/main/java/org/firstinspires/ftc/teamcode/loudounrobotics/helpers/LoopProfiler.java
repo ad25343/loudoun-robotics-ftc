@@ -89,7 +89,15 @@ public class LoopProfiler {
         return (r.totalMemory() - r.freeMemory()) / 1_048_576L;
     }
 
-    /** Drop a compact health block into your driver station telemetry. */
+    /**
+     * Drop a compact health block into your driver station telemetry — and, if
+     * FTC Dashboard is on the classpath, also send the values to live dashboard
+     * charts (see {@link DashboardBridge}). The dashboard send is no-op if the
+     * dashboard isn't reachable.
+     *
+     * Note: this method does NOT call {@code DashboardBridge.flush()}. Flush
+     * yourself once per loop, after all your send() calls.
+     */
     public void addTelemetry(Telemetry telemetry) {
         telemetry.addData("Loop ms (last / avg / max)",
                 "%.1f / %.1f / %.1f", lastLoopMs(), avgLoopMs(), maxLoopMs());
@@ -97,5 +105,11 @@ public class LoopProfiler {
             telemetry.addData("Voltage", "%.2f V", voltage());
         }
         telemetry.addData("Memory used", "%d MB", memoryUsedMB());
+
+        // Mirror to FTC Dashboard for live graphs. No-ops if dashboard isn't present.
+        DashboardBridge.send("loop_ms", lastLoopMs());
+        DashboardBridge.send("loop_ms_max", maxLoopMs());
+        if (voltage() > 0) DashboardBridge.send("voltage_v", voltage());
+        DashboardBridge.send("memory_mb", memoryUsedMB());
     }
 }

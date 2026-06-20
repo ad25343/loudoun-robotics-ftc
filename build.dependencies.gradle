@@ -1,6 +1,7 @@
 repositories {
     mavenCentral()
     google() // Needed for androidx
+    maven { url = 'https://maven.brott.dev/' }   // FTC Dashboard (com.acmerobotics.dashboard)
 }
 
 dependencies {
@@ -13,5 +14,8 @@ dependencies {
     implementation 'org.firstinspires.ftc:FtcCommon:11.1.0'
     implementation 'org.firstinspires.ftc:Vision:11.1.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
+
+    // FTC Dashboard — http://192.168.43.1:8080/dash from any browser on the robot's WiFi
+    implementation 'com.acmerobotics.dashboard:dashboard:0.4.16'
 }
 

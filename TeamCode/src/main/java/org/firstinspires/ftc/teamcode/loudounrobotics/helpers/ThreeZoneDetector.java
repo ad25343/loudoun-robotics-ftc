@@ -73,8 +73,8 @@ public class ThreeZoneDetector implements VisionProcessor {
 
     public enum ZonePosition { LEFT, MIDDLE, RIGHT, NONE }
 
-    private final Scalar hsvLower;
-    private final Scalar hsvUpper;
+    private final Scalar[] hsvLowers;
+    private final Scalar[] hsvUppers;
     private int threshold = 25500;  // ~100 matching pixels minimum (255 per pixel × 100)
 
     private Rect leftZone, middleZone, rightZone;
@@ -82,17 +82,35 @@ public class ThreeZoneDetector implements VisionProcessor {
     // Reused per-frame so we don't allocate Mats inside processFrame.
     private final Mat hsv = new Mat();
     private final Mat mask = new Mat();
+    private final Mat tempMask = new Mat();  // scratch for multi-range OR
 
     private volatile ZonePosition detection = ZonePosition.NONE;
     private volatile double leftSum = 0, middleSum = 0, rightSum = 0;
 
+    /** Single HSV range. */
     public ThreeZoneDetector(Scalar hsvLowerBound, Scalar hsvUpperBound) {
-        this.hsvLower = hsvLowerBound;
-        this.hsvUpper = hsvUpperBound;
+        this(new Scalar[]{hsvLowerBound}, new Scalar[]{hsvUpperBound});
+    }
+
+    /**
+     * Multiple HSV ranges OR'd together. Required for red, since red in HSV
+     * wraps around the hue axis: low-red ≈ [0, 15] AND high-red ≈ [170, 180].
+     * A single range misses half the red pixels.
+     */
+    public ThreeZoneDetector(Scalar[] hsvLowerBounds, Scalar[] hsvUpperBounds) {
+        if (hsvLowerBounds.length != hsvUpperBounds.length || hsvLowerBounds.length == 0) {
+            throw new IllegalArgumentException("HSV bound arrays must have matching non-zero length");
+        }
+        this.hsvLowers = hsvLowerBounds;
+        this.hsvUppers = hsvUpperBounds;
     }
 
     public static ThreeZoneDetector forRedElement() {
-        return new ThreeZoneDetector(new Scalar(0, 120, 100), new Scalar(15, 255, 255));
+        // Red wraps the hue axis. Need BOTH [0, 15] and [170, 180] to catch all red pixels.
+        return new ThreeZoneDetector(
+                new Scalar[]{ new Scalar(0,   120, 100), new Scalar(170, 120, 100) },
+                new Scalar[]{ new Scalar(15,  255, 255), new Scalar(180, 255, 255) }
+        );
     }
 
     public static ThreeZoneDetector forBlueElement() {
@@ -129,7 +147,12 @@ public class ThreeZoneDetector implements VisionProcessor {
     @Override
     public Object processFrame(Mat frame, long captureTimeNanos) {
         Imgproc.cvtColor(frame, hsv, Imgproc.COLOR_RGB2HSV);
-        Core.inRange(hsv, hsvLower, hsvUpper, mask);
+        // Build combined mask as the OR of every configured range.
+        Core.inRange(hsv, hsvLowers[0], hsvUppers[0], mask);
+        for (int i = 1; i < hsvLowers.length; i++) {
+            Core.inRange(hsv, hsvLowers[i], hsvUppers[i], tempMask);
+            Core.bitwise_or(mask, tempMask, mask);
+        }
 
         org.opencv.core.Rect leftRect   = toCvRect(leftZone);
         org.opencv.core.Rect middleRect = toCvRect(middleZone);
